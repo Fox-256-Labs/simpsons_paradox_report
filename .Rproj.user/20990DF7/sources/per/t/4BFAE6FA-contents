@@ -1,0 +1,167 @@
+---
+title: "Exploring the Simpson's Paradox in Palmer Penguins Dataset"
+subtitle: "And simultaneously demonstrating why you should always drill down into your dataset" 
+description: "This document is a short analysis of the Penguin Dataset. It explores the relationship between bill length and bill depth and show how important it is to consider group effects"
+
+author: 
+- name: "Matthew Kuch"
+  affiliation: "Independent"
+  email: kuch.matthew@gmail.com
+
+keywords: "Statistics, Simpson's Paradox, Data Analysis"
+date: today
+
+title-block-banner: "#f0f3f5"
+title-block-banner-color: "black"
+
+format: html
+html:
+css: style.css
+toc: true
+toc-location: left
+number-sections: true
+editor: visual
+fig-cap-location: margin
+---
+
+![Palmer Penguins](assets/palmer_penguins.png)
+
+::: {.callout-caution collapse="true"}
+## What is the Simpson's Paradox?
+
+Simpson's Paradox is a phenomenon in statistics where a trend or relationship that appears within several individual groups reverses or disappears when the groups are combined. In other words, when data is separated into different groups, one trend might appear, but when the data is pooled together, the overall trend can show the opposite effect.
+
+This paradox highlights how misleading it can be to interpret data without considering how it's grouped or the context behind the numbers.
+:::
+
+# Introduction
+
+In this report we are analyzing the Simpson's paradox in **penguin dataset** to better understand the relationship between bill length and depth by species and island.
+
+The *source* of this data is [here](https://allisonhorst.github.io/palmerpenguins/)
+
+## Loading data
+
+The code below runs our preliminary analysis
+
+```{r warning=FALSE, message=FALSE}
+
+# Load libraries
+library(tidyverse)
+library(rmarkdown)
+library(readxl)
+library(here)
+library(patchwork)
+library(DT)
+library(knitr)
+library(plotly)
+
+
+# Get Data 
+# excel_data <- read_excel(here("input", "excel_data.xlsx"))
+data <- read.csv(here("input", "data.csv"))
+
+
+# Clean Data
+# penguins_clean <- excel_data %>% na.omit()
+clean_data <- data %>% na.omit
+
+
+
+```
+
+# Descriptive analytics
+
+![Bill measurement explanation](assets/culmen_depth.png)
+
+```{r warning=FALSE, message=FALSE, echo = FALSE, fig.align='center',fig.cap="Relationship between bill <b>length</b> and bill <b>depth</b>. <b>All</b> data points included."}
+
+
+
+# Using ggplot to visualize
+p <- ggplot(data = clean_data,
+       mapping = aes(x = bill_length_mm, y = bill_depth_mm)
+) +
+  geom_point(color="#69b3a2") + 
+  labs(title = "Bill Length vs Depth",
+       caption = "Data source: Palmer Penguins Dataset")
+
+ggplotly(p)
+```
+
+## Summary statistics
+
+It is also interesting to note that `bill length` a and `bill depth` are quite different from one specie to another. The average of a variable can be computed as follow:
+
+$${\displaystyle Avg={\frac {1}{n}}\sum _{i=1}^{n}a_{i}={\frac {a_{1}+a_{2}+\cdots +a_{n}}{n}}}$$
+
+`bill length` and `bill depth` averages are summarized in the 2 tables below.
+
+```{r warning=FALSE, message=FALSE, echo = FALSE}
+#| layout-ncol: 2
+
+clean_data %>%
+ group_by(species) %>% 
+  summarise(average_bill_length = mean(bill_length_mm, na.rm = TRUE)) %>% 
+  kable()
+
+clean_data %>%
+ group_by(species) %>% 
+  summarise(average_bill_depth = mean(bill_depth_mm, na.rm = TRUE)) %>% 
+  kable()
+
+
+bill_length_adelie <- clean_data %>%
+ group_by(species) %>% 
+  summarise(average_bill_length = mean(bill_length_mm, na.rm = TRUE)) %>%
+  filter(species == "Adelie") %>%
+  pull(average_bill_length) %>%
+  round(2)
+
+```
+
+For instance, the average bill length for the specie `Adelie` is `r bill_length_adelie`.
+
+## Checking if the same trend exists when we breakdown the data by species (smaller groupings)
+
+```{r echo = FALSE, fig.width = 9, fig.height = 3, fig.cap="There is actually a positive correlation when split by species."}
+
+create_scatterplot <- function(data, selected_species, color) {
+  # Filter the data for the specified species and island
+  filtered_data <- data %>%
+    na.omit() %>%
+    filter(species == selected_species)
+  
+  # Create the scatterplot
+  plot <- ggplot(
+    filtered_data,
+    aes(x = bill_length_mm, y = bill_depth_mm)
+  ) +
+    geom_point(color=color) +
+    labs(
+      x = "Bill Length (mm)",
+      y = "Bill Depth (mm)",
+      title = selected_species
+    ) +
+    theme(legend.position = "none")
+  
+  return(plot)
+}
+
+# Use the function
+p1 <- create_scatterplot(clean_data, "Adelie", "#6689c6")
+
+p2 <- create_scatterplot(clean_data, "Gentoo", "#e85252")
+
+p3 <- create_scatterplot(clean_data, "Chinstrap", "#9a6fb0")
+
+
+p1 + p2 + p3
+```
+
+## Data table for you to explore the dataset
+
+```{r warning=FALSE, message=FALSE, echo = FALSE}
+# Make a table
+datatable(clean_data, filter = "top")
+```
