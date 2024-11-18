@@ -10,4 +10,4 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
-This project is where I keep all the data and code for the "produtive-R-workflow" course
+This project is where I keep all the data and code for the Palmer Penguins report
